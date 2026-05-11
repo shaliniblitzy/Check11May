@@ -1,0 +1,13 @@
+{
+  "name": "check11may",
+  "version": "1.0.0",
+  "description": "Tutorial Node.js HTTP server using Express that exposes /hello-world and /good-evening endpoints",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^5.0.0"
+  }
+}
