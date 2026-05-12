@@ -1,16 +1,16 @@
 {
   "name": "check11may",
   "version": "1.0.0",
-  "private": true,
-  "description": "Node.js Express server tutorial hosting Hello world and Good evening endpoints",
+  "description": "Node.js Express tutorial server with Hello world and Good evening endpoints",
   "main": "server.js",
-  "engines": {
-    "node": ">=18.0.0"
-  },
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
     "express": "^5.2.1"
-  }
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "ISC"
 }

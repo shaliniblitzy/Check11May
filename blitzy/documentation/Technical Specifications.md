@@ -4,470 +4,518 @@
 
 ## 0.1 Intent Clarification
 
-### 0.1.1 Core Security Objective
+### 0.1.1 Core Feature Objective
 
-Based on the prompt described by the user, the Blitzy platform understands that **no security vulnerability has been reported** and **no CVE, advisory, or symptom of insecurity has been cited**. The user's literal request is a feature addition:
+Based on the prompt, the Blitzy platform understands that the new feature requirement is to introduce the Express.js web framework into a Node.js tutorial server that currently exposes a single endpoint returning the plain-text response `Hello world`, and to extend the surface of that server with an additional endpoint that returns the plain-text response `Good evening`. The work is therefore a two-part addition: (a) adopt Express as the HTTP routing layer for the existing endpoint, and (b) register a new route adjacent to it.
 
-> User Example (verbatim): *"this is a tutorial of node js server hosting one endpoint that returns the response 'Hello world'. Could you add expressjs into the project and add another endpoint that return the reponse of 'Good evening'?"*
+The original user instruction is preserved verbatim below:
 
-Two foundational mismatches must be reconciled honestly in this Agent Action Plan rather than papered over:
+> User Example: "this is a tutorial of node js server hosting one endpoint that returns the response 'Hello world'. Could you add expressjs into the project and add another endpoint that return the reponse of 'Good evening'?"
 
-- **Prompt-Flavor / Intent Mismatch.** The section template assigned to this work is the *FIX SECURITY VULNERABILITIES* flavor of the Agent Action Plan, while the user's intent is *ADD FEATURE* (integrate Express.js and add a `Good evening` endpoint). The Blitzy platform reconciles this by treating the introduction of a new HTTP framework and a new public endpoint as a **security-conscious feature implementation**: the chosen Express version will be the current maintained release with no outstanding CVEs, the new code will adopt baseline secure defaults (e.g., disabling `X-Powered-By` fingerprinting), and the validation strategy will include `npm audit`. Sections of the security-fix template that have no applicable input (vulnerability classification, exploitability, CVSS, root-cause traces, dependency-replacement analysis) will be explicitly marked **Not Applicable** with grounded reasoning rather than fabricated to fit the template — per the binding constraints C-2-01 (No Fabrication) and C-2-02 (No Extrapolation) that govern this specification.
+**Explicit Feature Requirements**
 
-- **Baseline / Repository-State Mismatch.** The user's request references *"this tutorial of node js server hosting one endpoint that returns the response 'Hello world'"*, implying a pre-existing Node.js server in the repository. Repository inspection confirms that this baseline does **not** actually exist. The repository `Check11May` contains only `README.md` (whose single line is `# Check11May`) plus a `.git` directory. There is no `package.json`, no `package-lock.json`, no `node_modules/`, no `server.js`, no source file of any kind, no `.nvmrc`, no `.blitzyignore`, no Dockerfile, no CI configuration, and no test suite. This is consistent with the existing technical specification, which documents the project as being in a pre-implementation state with only `README.md` in scope and all features, capabilities, integrations, UI, and APIs verified absent.
+The table below restates each explicit requirement extracted from the prompt with the precise technical action it implies.
 
-Severity rating: **Not Applicable** — no vulnerability category was supplied or discovered.
+| # | Explicit Requirement (User) | Technical Action (Blitzy Interpretation) |
+|---|------------------------------|-------------------------------------------|
+| R1 | "add expressjs into the project" | Add `express` as a runtime dependency in a `package.json` manifest and require/import it at the application entry point |
+| R2 | "add another endpoint that return the reponse of 'Good evening'" | Register a second HTTP GET route on the Express application that responds with the body `Good evening` |
+| R3 | Preserve the tutorial baseline ("hosting one endpoint that returns the response 'Hello world'") | Ensure the `Hello world` response remains exposed; route it through Express rather than the built-in `http` module |
 
-Vulnerability category: **No vulnerability reported**; the work item is functional feature addition with security-conscious defaults applied to newly created code.
+**Implicit Requirements Surfaced**
 
-Implicit security requirements surfaced:
+The user's instruction omits operational details that must nevertheless be supplied for the resulting program to execute. The Blitzy platform makes the following implicit requirements explicit, each with a rationale grounded in standard Express tutorial conventions:
 
-- The Express package must be pinned to a maintained, non-vulnerable major/minor line.
-- The Node.js engine declared in `package.json` must meet Express 5.x's minimum (Node 18+).
-- The introduced HTTP server must not expand the attack surface beyond the user's explicit functional requirements (two static-string `GET` endpoints).
+- **Project manifest**: The repository currently has no `package.json` [README.md:L1, inferred — no direct source for absence beyond root listing]; a `package.json` must be created so that `express` can be declared as a dependency and resolvable by `npm install`.
+- **Application entry script**: A single JavaScript source file (e.g., `server.js`) must be created to host the Express application; the repository currently contains no executable source files [`README.md:L1`, §1.2.2 of this specification].
+- **HTTP listener configuration**: An Express application requires an explicit `app.listen(port, ...)` invocation to bind to a TCP port; port `3000` is the conventional default in Express tutorials and is adopted here in the absence of a user-specified value `[inferred — no direct source]`.
+- **Route path for the new endpoint**: The user names the response (`Good evening`) but not the URL path. A semantic kebab-case path `/good-evening` is selected as it follows Express routing conventions and reads unambiguously `[inferred — no direct source]`.
+- **Dependency ignore rules**: When `express` is installed, npm materializes a `node_modules/` directory which must not be committed; a `.gitignore` file is therefore required.
+- **Lockfile commitment**: Running `npm install` produces a `package-lock.json` that pins the resolved dependency tree and should be committed for reproducible installs.
+- **Node.js runtime constraint**: Express 5.x declares `engines.node >= 18` `[npm registry — npm view express engines]`; the manifest should mirror this constraint to fail fast on unsupported runtimes.
 
 ### 0.1.2 Special Instructions and Constraints
 
-The user provided no special directives beyond the literal feature description. Specifically:
+The user's prompt contains no explicit architectural constraints (no preferred routing style, no testing requirement, no module-system preference between CommonJS and ESM, no port pin, no path pin, no response Content-Type pin, no production hardening directive). In the absence of stated constraints, the Blitzy platform adopts the conventions consistent with the "tutorial" framing the user supplied:
 
-- **User-specified rules array** is empty (`[]`). No project-specific implementation rules apply.
-- **Environment variables and secrets** lists are both empty. None were attached.
-- **Setup instructions** were not provided.
-- **Attachments** were not provided.
-- **Change scope preference**: **Minimal** (smallest change set that fulfills the literal request and applies baseline security-conscious defaults).
-- **Web search requirement**: satisfied — research conducted into current Express.js version, Node.js compatibility, and Express security policy (see § 0.2).
-- **User Example preserved verbatim**: *"this is a tutorial of node js server hosting one endpoint that returns the response 'Hello world'. Could you add expressjs into the project and add another endpoint that return the reponse of 'Good evening'?"*
+- **Module system**: CommonJS (`require('express')`) — the historical default for Node.js tutorials and the format produced by `npm init -y` without further configuration.
+- **Response style**: Plain text via `res.send('...')`, matching the simplicity of the originally described `Hello world` response.
+- **No production middleware**: Helmet, CORS, body parsers, compression, and similar production hardening are not introduced because they are not requested and are out of scope for a tutorial.
+- **No persistence layer**: No database, ORM, or in-memory store is introduced — both endpoints return static strings.
+- **No test framework**: No test runner (Jest, Mocha, Vitest) is introduced because tests are not requested. (This is documented for transparency; downstream agents must respect this scope.)
+- **Backward compatibility of the `Hello world` endpoint**: The response body and route (`GET /`) for the original endpoint are preserved when re-implemented under Express, so any existing tutorial reader following the user's narrative observes no behavioural regression on that endpoint.
 
 ### 0.1.3 Technical Interpretation
 
-This request translates to the following technical implementation strategy:
+These feature requirements translate to the following technical implementation strategy: the Blitzy platform will materialize a minimal Express application in the currently empty repository, comprising a project manifest, a lockfile, a single entry script, and a gitignore. The entry script instantiates an Express `app`, registers two GET routes, and binds the server to a port. The strategy can be summarized as a series of "to-achieve / by-doing" mappings:
 
-To realize the user's intent in a repository that currently has no Node.js scaffolding, the Blitzy platform will **create** four files: a `package.json` declaring an `express` runtime dependency pinned to `^5.2.1` and an `engines.node` field of `>=18.0.0`; the npm-generated `package-lock.json` to lock the exact transitive dependency tree for reproducible installs; a `server.js` entry point that calls `app.disable('x-powered-by')` and registers two `app.get(...)` route handlers — one at `/` returning `Hello world` and one at `/good-evening` returning `Good evening`; and a `.gitignore` that excludes `node_modules/`. The existing `README.md` is preserved unchanged to honor constraint C-2-03 (Preserve Canonical Schemas).
+- **To declare Express as a dependency**, we will create `package.json` at the repository root with `dependencies: { "express": "^5.2.1" }` and an `engines` field constraining Node.js to `>=18`.
+- **To produce a reproducible install**, we will run `npm install express@5.2.1`, which yields `package-lock.json` and the (gitignored) `node_modules/` tree.
+- **To expose the `Hello world` endpoint via Express**, we will create `server.js` with `app.get('/', (req, res) => res.send('Hello world'))`.
+- **To add the `Good evening` endpoint**, we will append `app.get('/good-evening', (req, res) => res.send('Good evening'))` to the same `server.js`.
+- **To start the HTTP listener**, we will invoke `app.listen(process.env.PORT || 3000, ...)` so the port is overridable via environment variable but defaults to the conventional tutorial port.
+- **To prevent dependency artifacts from being committed**, we will create a `.gitignore` listing `node_modules/`, `npm-debug.log*`, and `.env`.
+- **To document usage for tutorial readers**, we will optionally update `README.md` with `npm install` and `npm start` instructions; the existing `# Check11May` title heading is preserved.
 
-User understanding level: **General feature concern with no explicit security claim.** The user did not cite a CVE, did not describe a symptom, and did not request a security review. The "security-fix" framing of this Agent Action Plan section is a template constraint imposed by the section flavor, not by the user's words.
+The end state is a runnable Express tutorial server reachable at `http://localhost:3000/` (returns `Hello world`) and `http://localhost:3000/good-evening` (returns `Good evening`).
 
-Mapping of intent → action:
+## 0.2 Repository Scope Discovery
 
-- *"add expressjs into the project"* → Create `package.json` with `express@^5.2.1` as a direct dependency; run `npm install` to materialize `package-lock.json`.
-- *"add another endpoint that return the reponse of 'Good evening'"* → In `server.js`, register `app.get('/good-evening', (req, res) => res.send('Good evening'))`.
-- Implicit: realize the absent "Hello world" baseline → In the same `server.js`, register `app.get('/', (req, res) => res.send('Hello world'))`.
+### 0.2.1 Comprehensive File Analysis
 
-## 0.2 Vulnerability Research and Analysis
+A complete enumeration of the repository was performed. The repository root contains exactly one file and zero subdirectories:
 
-### 0.2.1 Initial Assessment
+| Path | Type | Status | Role in This Feature |
+|------|------|--------|----------------------|
+| `README.md` | File | Existing (1 line: `# Check11May`) | REFERENCE; optional content update for usage instructions |
+| `/` (root) | Folder | Existing, otherwise empty | Will hold all newly created files |
 
-The user's input contains **no** security-related identifiers. The following inventory is therefore empty by user input:
+There are **no existing API endpoints, no database models, no service classes, no controllers, no middleware, no interceptors, and no configuration files** in the repository [§1.2.2 of this specification; §2.8.3 verified-absence enumeration]. Consequently, the conventional "integration point discovery" yields an empty set:
 
-| Item                               | Value Provided by User |
-|------------------------------------|------------------------|
-| CVE numbers mentioned              | None                   |
-| Vulnerability names                | None                   |
-| Affected packages                  | None (none exist yet)  |
-| Symptoms described                 | None                   |
-| Security advisories referenced     | None                   |
+| Integration Point Category | Files Found in Repository | Disposition |
+|----------------------------|---------------------------|-------------|
+| API endpoints that connect to the feature | None | Not applicable — the feature itself introduces the first endpoint(s) |
+| Database models / migrations affected | None | Not applicable — no persistence layer in scope |
+| Service classes requiring updates | None | Not applicable — no service tier exists |
+| Controllers / handlers to modify | None | Not applicable — Express route handlers are introduced for the first time |
+| Middleware / interceptors impacted | None | Not applicable — no middleware exists; no production middleware in scope |
+| Package manifests requiring update | None — no `package.json` yet | A new `package.json` will be created |
+| CI/CD pipeline configuration | None | Out of scope |
+| Test files | None | Out of scope |
 
-The repository likewise contains no declared dependencies, no lockfiles, no vendored modules, and no language manifest — verified in the existing technical specification's open-source-dependency inventory. There is consequently **no installed software surface** in which a vulnerability could presently exist; the only file in scope today is `README.md`.
+The discovery confirms that this feature is best characterized as a "greenfield-within-a-named-repo" addition: every file required to run the feature must be authored from scratch.
 
 ### 0.2.2 Web Search Research Conducted
 
-The security-fix flavor mandates "extensive web searches" for relevant security context. Although the user reported no vulnerability, the Blitzy platform conducted targeted research to ground the Express version choice and the security-conscious defaults applied to newly created code. Findings:
+The following research was performed to ground the implementation in current, evidence-backed facts:
 
-- **Express.js current stable release**: <cite index="21-2">Latest version: 5.2.1, last published: 5 months ago</cite> on the npm registry, with <cite index="21-4">103476 other projects in the npm registry using express</cite>.
-- **Express 5.x runtime floor**: <cite index="21-10">Node.js 18 or higher is required</cite> per the official `express` npm package documentation; reiterated by the installing guide stating <cite index="23-1">Express 5.x requires Node.js 18 or higher</cite>.
-- **Express 5.x stabilization**: <cite index="5-19">Express.js 5.0, finally stable in early 2025, modernises Node.js web development while maintaining its unopinionated philosophy.</cite>
-- **Express maintenance policy** (CRITICAL — informs version choice): <cite index="12-12,12-13,12-14,12-15">Express 2.x and 3.x are no longer maintained. Security and performance issues in these versions won't be fixed. Do not use them! If you haven't moved to version 4, follow the migration guide or consider Commercial Support Options.</cite>
-- **Recommended security middleware** (informational; not adopted in the minimal scope of this plan): <cite index="12-21,12-22,12-23">Helmet can help protect your app from some well-known web vulnerabilities by setting HTTP headers appropriately. Helmet is a middleware function that sets security-related HTTP response headers. Helmet sets the following headers by default: Content-Security-Policy: A powerful allow-list of what can happen on your page which mitigates many attacks · Cross-Origin-Opener-Policy: Helps process-isolate your page · Cross-Origin-Resource-Policy: Blocks others from loading your resources cross-origin · Origin-Agent-Cluster: Changes process isolation to be origin-based ... X-Powered-By: Info about the web server. Removed because it could be used in simple attacks · X-XSS-Protection: Legacy header that tries to mitigate XSS attacks, but makes things worse, so Helmet disables it</cite>
-- **Fingerprinting reduction baseline** (ADOPTED): <cite index="12-26,12-27,12-28">It can help to provide an extra layer of security to reduce the ability of attackers to determine the software that a server uses, known as "fingerprinting." Though not a security issue itself, reducing the ability to fingerprint an application improves its overall security posture. Server software can be fingerprinted by quirks in how it responds to specific requests, for example in the HTTP response headers. By default, Express sends the X-Powered-By response header that you can disable using the app.disable() method</cite>
+| Research Topic | Source | Finding |
+|----------------|--------|---------|
+| Latest stable Express version | npm registry via `npm view express version` | `5.2.1` |
+| Express runtime engine constraint | npm registry via `npm view express engines` | `{ "node": ">= 18" }` |
+| Express license | npm registry via `npm view express license` | `MIT` |
+| Installed Node.js version in environment | `node -v` | `v22.22.2` (satisfies Express 5 engine requirement) |
+| Standard Express minimal-server pattern | Express official conventions | `const express = require('express'); const app = express(); app.get('/', handler); app.listen(port);` |
+| Standard Node.js gitignore content | Common Node.js project conventions | `node_modules/`, `npm-debug.log*`, `.env`, `.DS_Store` |
 
-**Outstanding-CVE check for Express 5.2.1**: No active CVE was surfaced for `express@5.2.1` in the minimal usage profile (`app.get` with static-string responses). High-profile December 2025 / 2026 advisories surfaced during research (e.g., <cite index="6-12">React (CVE-2025-55182), Next.js (CVE-2025-66478)</cite> and the axios advisory <cite index="17-4">Axios is vulnerable to DoS attack through lack of data size check</cite>) are unrelated to Express and to the packages in scope here.
+No best-practices research was required beyond version verification; the patterns used are the canonical minimal-server pattern documented in Express's own quickstart guidance and reproduced verbatim in introductory tutorials.
 
-**Research sources consulted** (also enumerated in § 0.10):
+### 0.2.3 New File Requirements
 
-- npm registry — `express` package page
-- expressjs.com — Security best practices for Express in production
-- expressjs.com — Installing Express (Node.js version requirements)
-- MDN Web Docs — Express/Node introduction
-- Industry coverage of Express 5.0 stabilization
+The feature requires the creation of the following files at the repository root. No subdirectories are introduced because the surface area of the tutorial does not justify them.
 
-### 0.2.3 Vulnerability Classification
+**Source files to create:**
 
-| Dimension          | Determination |
-|--------------------|---------------|
-| Vulnerability type | **Not Applicable.** No vulnerability was reported by the user, and the repository contains no code or dependency in which a vulnerability could presently exist. |
-| Attack vector      | Not Applicable.  |
-| Exploitability     | Not Applicable.  |
-| Impact (C/I/A)     | Not Applicable.  |
-| Root cause         | Not Applicable.  |
+| New File | Purpose |
+|----------|---------|
+| `server.js` | Application entry point: imports Express, instantiates the app, registers `GET /` and `GET /good-evening`, binds to the listener port |
 
-Per constraint **C-2-01 (No Fabrication)**, the Blitzy platform does not synthesize CVE numbers, CVSS scores, or root-cause traces for vulnerabilities that have not been reported and that no committed artifact exhibits.
+**Configuration / manifest files to create:**
 
-## 0.3 Security Scope Analysis
+| New File | Purpose |
+|----------|---------|
+| `package.json` | Project manifest declaring name, version, main entry, start script, `express` dependency at `^5.2.1`, `engines.node >= 18`, and `license: ISC` (npm default) |
+| `package-lock.json` | Pinned dependency tree produced by `npm install`; ensures reproducible installs |
+| `.gitignore` | Excludes `node_modules/`, log files, and environment files from version control |
 
-### 0.3.1 Affected Component Discovery
+**Test files:**
 
-Repository inspection was exhaustive against the present state of `Check11May`:
+No test files are introduced. Testing is not part of the user's request and is therefore explicitly out of scope (see §0.6.2). A future revision of this specification can add `tests/server.test.js` if a test framework is later requested.
 
-| Search Target                                           | Result                |
-|---------------------------------------------------------|-----------------------|
-| Vulnerable package imports (`import`/`require` lookups) | None — no source files exist |
-| Dependency manifests (`package.json`, `requirements.txt`, `pom.xml`, `go.mod`, `Cargo.toml`) | None present |
-| Lockfiles (`package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`)                              | None present |
-| Configuration files (`config/**`, `*.env*`, `secrets/**`, `*security*.config.*`)            | None present |
-| Container/CI files (`Dockerfile*`, `docker-compose*`, `.github/workflows/*`, `.gitlab-ci.yml`, `Jenkinsfile`) | None present |
-| Vendored dependencies (`node_modules/`, `vendor/`)      | None present |
-| `.blitzyignore` files (any depth)                       | None present |
+**Documentation files:**
 
-The set of files affected by **the work the user actually requested** (introducing Express and a second endpoint) is therefore not a set of *vulnerable* files but a set of *to-be-created* files. The exhaustive list is given in § 0.6.
+`README.md` exists and is preserved. An optional non-disruptive append adding "Getting Started" instructions (e.g., `npm install`, `npm start`, the two endpoint URLs) is permitted but not strictly required by the user's prompt.
 
-### 0.3.2 Root Cause Identification
+## 0.3 Dependency Inventory
 
-**Not Applicable.** There is no vulnerability to trace. There is no vulnerable component to identify as the originating defect. The "security work" performed by this plan is the application of secure defaults to **new code being created from scratch**, not the remediation of insecure code already committed.
+### 0.3.1 Public Package Additions
 
-Per constraint **C-2-02 (No Extrapolation)**, the Blitzy platform does not infer a hypothetical root cause from the project name or from the user's casual reference to a tutorial.
+The feature introduces exactly one direct runtime dependency. No development dependencies, no peer dependencies, and no optional dependencies are required for the scope described.
 
-### 0.3.3 Current State Assessment
+| Registry | Package | Version | Range to Declare | Purpose | License |
+|----------|---------|---------|------------------|---------|---------|
+| npm | `express` | `5.2.1` | `^5.2.1` | Minimal web framework providing the routing layer (`app.get(path, handler)`) and the HTTP listener (`app.listen(port)`) used to serve the two tutorial endpoints | MIT |
 
-| Aspect                                | Current State |
-|---------------------------------------|---------------|
-| Vulnerable package current version    | **N/A.** No `express` (or any other) package is currently installed. There is no `package.json` and no `node_modules/`. |
-| Vulnerable code pattern location      | **N/A.** No source code exists in the repository. |
-| Vulnerable configuration              | **N/A.** No configuration files exist. |
-| Scope of exposure                     | **Zero**. The repository is not deployed, not served, and has no executable surface. There is nothing currently exposed to the internal network, the public internet, or any API consumer. |
+The exact version `5.2.1` was verified via the npm registry (`npm view express version`) and reflects the current latest stable release `[npm registry — npm view express]`. The caret range (`^5.2.1`) is the npm default produced by `npm install express` and permits non-breaking patch and minor upgrades within the 5.x major line.
 
-This assessment is consistent with — and verified by — the existing technical specification's Security Implications section, which records that authentication/authorization, secret management, transport/TLS configuration, dependency-vulnerability surface, supply-chain provenance controls, container hardening, and CI/CD security controls are all "Not declared", "Empty", or "Not applicable" for the current repository state.
+### 0.3.2 Runtime Engine Constraint
 
-## 0.4 Version Compatibility Research
+Express 5.x declares `engines.node >= 18` `[npm registry — npm view express engines]`. The `package.json` manifest authored as part of this feature must mirror that constraint:
 
-### 0.4.1 Secure Version Identification
-
-The version-selection table below applies the security-fix template's "current version → patched version" structure to the **introduction** of a new dependency (the dependency does not pre-exist). The "current version" column is therefore `Not installed` rather than a vulnerable predecessor.
-
-| Package   | Current Version | Recommended Version | Rationale |
-|-----------|-----------------|---------------------|-----------|
-| `express` | Not installed   | `^5.2.1`            | <cite index="21-2">Latest version: 5.2.1, last published: 5 months ago</cite> on the npm registry. The caret allows automatic uptake of patch and minor releases within Express 5.x via `npm update`, ensuring future security patches flow in without manual version pinning churn. |
-
-The Blitzy platform did not identify any first-patched/last-vulnerable pair to enumerate, because there is no vulnerability and no incumbent installation. **Breaking-change risk on upgrade path: Not Applicable** — there is no upgrade path; this is a greenfield introduction.
-
-### 0.4.2 Compatibility Verification
-
-| Compatibility Axis                        | Determination |
-|-------------------------------------------|---------------|
-| Node.js runtime requirement (Express 5.x) | <cite index="23-1">Express 5.x requires Node.js 18 or higher</cite>. The local environment has Node.js v22.22.2 available, which exceeds this floor with a margin of four major versions. |
-| `package.json` `engines.node` declaration | `">=18.0.0"` will be set to enforce the requirement at install time and reject EOL runtimes. |
-| Other-dependency conflicts                | **None.** No other dependencies are declared by the user or required by the user's request. `express` is the sole direct dependency. |
-| Peer-dependency considerations            | **None.** Express has no peer-dependency requirements for the minimal usage profile in scope. |
-
-**Alternative-package analysis: Not Applicable.** The user explicitly named `expressjs`. Replacing Express with an alternative (Fastify, Koa, Hapi, raw `http`) would directly contradict the user's literal request and is therefore out of scope. The security-fix template's "dependency replacement analysis" section is not exercised.
-
-## 0.5 Security Fix Design
-
-### 0.5.1 Minimal Fix Strategy
-
-**Principle**: apply the smallest possible change set that fulfills the user's literal feature request while baking in baseline security-conscious defaults for the **new** code being introduced. No code currently exists to patch, so the "fix" is the act of creating code that is secure-by-default from inception.
-
-Fix approach: **Combination** — a *dependency addition* (introducing Express) plus *new source/configuration files* implementing the two endpoints and Node-engine policy.
-
-For the **dependency addition**:
-
-- To realize the feature, add `express@^5.2.1` to `package.json#dependencies`.
-- Justification: this is the current maintained stable release with no outstanding CVE applicable to the in-scope usage profile (verified in § 0.2).
-- Side effects: none beyond the standard `node_modules/` install and the materialization of `package-lock.json`.
-
-For the **code introduction**:
-
-- Implement `app.get('/', ...)` returning the static body `Hello world`, and `app.get('/good-evening', ...)` returning the static body `Good evening`, in a single `server.js`.
-- Rationale: the user's request explicitly enumerates these two endpoints and their literal response bodies.
-
-For the **configuration introduction**:
-
-- Set `engines.node` to `">=18.0.0"` in `package.json` to enforce the Express 5.x runtime floor and prevent installation on EOL Node lines.
-- Add `.gitignore` excluding `node_modules/` to prevent dependency bloat in git history (standard hygiene; not a CVE remediation).
-
-The Blitzy platform deliberately **does not** introduce optional security middleware in this minimal scope:
-
-- Helmet is **not** added — adding it would expand scope beyond the user's request and would have no immediate effect, since neither endpoint serves HTML, accepts user input, or sets cookies. Helmet adoption is documented in § 0.9 as a future-improvement candidate but is OUT OF SCOPE for this plan.
-- Rate limiting, request logging, CORS configuration, body parsers, HTTPS termination, and authentication middleware are likewise OUT OF SCOPE for the same reason.
-
-### 0.5.2 Dependency Replacement Analysis
-
-**Not Applicable.** No dependency is being replaced. Express is being **added** to a repository that has zero declared dependencies. The user named `expressjs` explicitly; alternative HTTP frameworks are not under consideration.
-
-### 0.5.3 Security Improvement Validation
-
-How the design preserves a strong security posture for newly created code:
-
-| Design Decision                                                  | Security Property Preserved                                                |
-|------------------------------------------------------------------|----------------------------------------------------------------------------|
-| Pin Express to `^5.2.1` (current, maintained, no active CVE)     | Avoids known-vulnerable Express lines (e.g., the unmaintained 2.x/3.x lines explicitly called out by the Express maintainers). |
-| Declare `engines.node: ">=18.0.0"`                               | Blocks installation against EOL Node.js lines that lack security updates.   |
-| Call `app.disable('x-powered-by')`                               | Removes the trivial `X-Powered-By: Express` server-fingerprinting header.   |
-| Endpoints return **static strings**, accept no input             | No XSS, no injection, no CSRF, no SSRF, no deserialization surface.         |
-| Listen on `process.env.PORT \|\| 3000`; no `0.0.0.0` override     | Inherits Node's default bind behavior; no explicit broadening of exposure. |
-| Commit `package-lock.json`                                       | Locks the exact transitive dependency tree for reproducible, audit-friendly installs. |
-| Add `.gitignore` excluding `node_modules/`                       | Prevents accidental commit of installed packages (which could leak credentials or platform-specific binaries). |
-
-Verification method (full procedure in § 0.8): `npm audit --omit=dev` reports zero vulnerabilities; `curl -sI` against the server shows no `X-Powered-By` header; both endpoints return their expected static bodies with HTTP 200.
-
-Rollback plan: should any issue arise, the change set is fully reversible by deleting the four created files (`package.json`, `package-lock.json`, `server.js`, `.gitignore`) — the repository returns to its current state (`README.md` + `.git` only). No data migration, no schema change, and no deployment side-effect exists to roll back.
-
-## 0.6 File Transformation Mapping
-
-### 0.6.1 File-by-File Plan
-
-The transformation table below lists the **target file first**, per the security-fix template requirement. All entries are CREATE or REFERENCE because the repository contains no Node.js source to UPDATE and no vulnerable code to DELETE.
-
-| Target File          | Transformation | Source File / Reference        | Security & Functional Changes |
-|----------------------|----------------|--------------------------------|-------------------------------|
-| `package.json`       | CREATE         | N/A (no manifest exists)       | Declare `name`, `version`, `private: true`, `main: "server.js"`, `engines.node: ">=18.0.0"` to enforce Express 5.x runtime floor, `scripts.start: "node server.js"`, and `dependencies.express: "^5.2.1"` to pin to the current maintained, non-vulnerable Express line. |
-| `package-lock.json`  | CREATE         | Generated by `npm install`     | Locks the exact transitive dependency tree resolved at install time, supporting reproducible installs and `npm audit` supply-chain provenance. Must be committed. |
-| `server.js`          | CREATE         | N/A (no source exists)         | Express application entry point. Imports `express`, instantiates `app`, calls `app.disable('x-powered-by')` for baseline fingerprinting reduction, registers `GET /` → `Hello world`, registers `GET /good-evening` → `Good evening`, and starts listening on `process.env.PORT \|\| 3000`. |
-| `.gitignore`         | CREATE         | N/A                            | Excludes `node_modules/`, `npm-debug.log*`, and `.env*` to prevent committed dependency bloat and accidental secret leakage. Standard Node.js hygiene; not a CVE remediation. |
-| `README.md`          | REFERENCE      | Existing file (`# Check11May`) | **Preserved unchanged** to honor constraint C-2-03 (Preserve Canonical Schemas). Treated as REFERENCE only; not modified by this plan. |
-
-The list is exhaustive for the scope of this Agent Action Plan. No file is left as "pending" or "to be discovered". No wildcard patterns are required because the repository's current and post-implementation file counts are both small and fully enumerable.
-
-### 0.6.2 Code Change Specifications
-
-For each newly created code file, the *before / after* security analysis is as follows:
-
-**`server.js`** (CREATE):
-
-- **Before state**: file does not exist; no HTTP server runs.
-- **After state**: a minimal Express server exposes exactly two `GET` endpoints returning static strings. The `X-Powered-By` header is disabled. No user input is parsed, no body is read, no headers are echoed, no cookies are set, and no external resources are accessed.
-- **Security improvement**: introduces the only HTTP-handling code in the project on top of a maintained, non-vulnerable Express version, with fingerprinting hardening from day one and zero attack surface from user input.
-
-Indicative shape (full implementation produced by the code generation step):
-
-```javascript
-const express = require('express');
-const app = express();
-app.disable('x-powered-by');
-app.get('/', (req, res) => res.send('Hello world'));
-app.get('/good-evening', (req, res) => res.send('Good evening'));
-app.listen(process.env.PORT || 3000);
+```json
+{
+  "engines": { "node": ">=18" }
+}
 ```
 
-### 0.6.3 Configuration Change Specifications
+The execution environment has Node.js v22.22.2 installed `[bash: node -v]`, which satisfies the constraint.
 
-**`package.json`** (CREATE):
+### 0.3.3 Dependency Updates
 
-| Field                  | Value                  | Security Rationale |
-|------------------------|------------------------|--------------------|
-| `engines.node`         | `">=18.0.0"`           | Enforces the Express 5.x runtime floor; rejects EOL Node.js lines that do not receive security updates. |
-| `dependencies.express` | `"^5.2.1"`             | Pins to the current maintained Express major.minor; allows `npm update` to flow security patches automatically. |
-| `private`              | `true`                 | Prevents accidental publication of this internal application to the public npm registry. |
-| `scripts.start`        | `"node server.js"`     | Provides a single, predictable start command for `npm start`; eliminates ad-hoc invocation drift. |
+There are no existing dependencies in the repository because there is no pre-existing `package.json` [§3.4.1 of this specification confirms no manifests are present]. Consequently:
 
-**`.gitignore`** (CREATE):
+- **No package upgrades** are required (no prior versions to upgrade from).
+- **No package removals** are required (no prior dependencies to remove).
+- **No import-statement migration** across existing files is required because there are no existing source files containing imports.
+- **No external reference updates** to configuration files, documentation, build files, or CI/CD definitions are required because none of those artifact categories exist in the repository.
 
-| Pattern         | Rationale                                                              |
-|-----------------|------------------------------------------------------------------------|
-| `node_modules/` | Excludes installed dependency tree from version control.               |
-| `npm-debug.log*`| Excludes npm crash dumps that may include local-path information.      |
-| `.env*`         | Excludes any future environment file that could contain secrets.       |
+### 0.3.4 Private Package Updates
 
-**`package-lock.json`** (CREATE — npm-generated):
+None. No private registry, no scoped organization packages, no `.npmrc`, and no `.gitmodules` file is present or required `[bash: ls -la repository root]`.
 
-- Setting: entire file is generated and committed.
-- Security rationale: locking transitive versions enables deterministic `npm ci`, makes `npm audit` results reproducible, and forms the basis of supply-chain provenance for any future security review.
+### 0.3.5 Transitive Dependency Footprint
 
-## 0.7 Dependency Inventory
+Installing `express@5.2.1` will materialize its transitive dependency tree (e.g., `accepts`, `body-parser`, `router`, `serve-static`, and others) into `node_modules/` and lock them into `package-lock.json`. These transitive dependencies are not enumerated individually in `package.json` and are not considered scope items for this feature; they are an installation by-product of the single direct `express` dependency.
 
-### 0.7.1 Security Patches and Updates
+## 0.4 Integration Analysis
 
-There is no pre-existing dependency baseline in the repository; this section therefore documents the *introduction* of a single direct dependency rather than the patching of vulnerable predecessors.
+### 0.4.1 Existing Code Touchpoints
 
-| Registry | Package Name | Current Version | Pinned To | CVE / Advisory      | Severity |
-|----------|--------------|-----------------|-----------|---------------------|----------|
-| npm      | `express`    | Not installed   | `^5.2.1`  | None applicable     | N/A      |
+The repository contains no executable code, no service definitions, no command-line entry points, no web endpoints, and no scheduled jobs [§1.2.2 of this specification]. There is therefore **no existing source-code touchpoint to modify** as part of integrating this feature.
 
-Sources for the pinned version: the npm registry listing (<cite index="21-2">Latest version: 5.2.1, last published: 5 months ago</cite>) and the Express installing guide confirming the Node.js floor (<cite index="23-1">Express 5.x requires Node.js 18 or higher</cite>).
+| Conventional Touchpoint Category | Expected Modification | Status in This Repository |
+|----------------------------------|-----------------------|----------------------------|
+| Application entry point (e.g., `src/main.py`, `index.js`) | Add feature initialization | **Created from scratch** as `server.js` |
+| Route registration file (e.g., `src/api/routes.py`) | Register new endpoints | **Combined into `server.js`** — no separate router file at tutorial scope |
+| Dependency injection container | Register feature services | Not applicable — no DI container in scope |
+| Database schema / migrations | Add migration for feature tables | Not applicable — no persistence in scope |
+| Configuration loader | Add feature configuration block | Not applicable — only `PORT` is read, directly from `process.env` |
+| Model exports (`__init__.py`, `index.ts`) | Export new model classes | Not applicable — no models in scope |
 
-### 0.7.2 Dependency Chain Analysis
+### 0.4.2 Implicit Touchpoints Created by This Feature
 
-| Chain Layer              | Items                                                                                       |
-|--------------------------|---------------------------------------------------------------------------------------------|
-| Direct dependencies      | `express` only.                                                                             |
-| Transitive dependencies  | Resolved automatically by `npm install`; the resolved tree is fully captured in the committed `package-lock.json` for audit and reproducibility. No transitive package is targeted for manual update by this plan. |
-| Peer dependencies        | None required by `express` for the in-scope usage.                                           |
-| `devDependencies`        | None added by this plan.                                                                    |
+While there are no existing files to modify, this feature establishes the following first-instance touchpoints that downstream feature additions will subsequently reference:
 
-Verification step (executed during validation in § 0.8): `npm audit --omit=dev` is expected to report `found 0 vulnerabilities` at plan-execution time; any future advisories affecting the transitive tree will surface through normal `npm audit` operation and can be remediated through subsequent change requests outside the scope of this plan.
+- **`server.js`** becomes the canonical Express application entry point. Future routes will be registered against the `app` object instantiated here (or moved to a `Router` if the file grows).
+- **`package.json`** becomes the canonical dependency manifest. Future packages (e.g., `dotenv`, `morgan`, test frameworks) will be added here.
+- **`.gitignore`** becomes the canonical exclusion list. Future build artifacts, environment files, or coverage reports will be appended here.
 
-### 0.7.3 Import and Reference Updates
+These are noted not as scope items for the present feature (which only requires their initial creation) but as context for future change sets.
 
-- **Source files requiring import updates**: only `server.js` (created in this plan), which imports `express` once via `const express = require('express')`.
-- **Import-transformation rules**: not applicable — there is no prior usage of any package to migrate from.
-- **Configuration-reference updates**: not applicable — no environment-variable or documentation reference to a prior package exists.
+### 0.4.3 Integration Flow
 
-## 0.8 Impact Analysis and Testing Strategy
-
-### 0.8.1 Security Testing Requirements
-
-There is no specific vulnerability to write a regression test against, because no vulnerability was reported and no vulnerable code exists. The validation strategy therefore focuses on (a) verifying functional correctness of the new endpoints and (b) verifying that the security-conscious defaults applied during creation are actually in effect.
-
-**Security-conscious behaviors to verify**:
-
-- `X-Powered-By` header is absent on responses (confirms `app.disable('x-powered-by')` is wired up correctly).
-- The installed `express` resolves to a 5.x release.
-- `npm audit --omit=dev` reports zero vulnerabilities at install time.
-
-**Test cases to add**: none mandated. The user did not request a test suite, no rules require one, and the change set is too small to merit a dedicated test framework. Validation is performed via the ad-hoc commands enumerated in § 0.10.
-
-### 0.8.2 Verification Methods
-
-**Automated security scanning**:
-
-| Tool        | Command                          | Expected Result                       |
-|-------------|----------------------------------|---------------------------------------|
-| `npm audit` | `npm audit --omit=dev`           | `found 0 vulnerabilities`             |
-| `npm ls`    | `npm ls express`                 | Resolves to `express@5.x.x` (5.2.1 or newer 5.x patch) |
-
-**Manual verification**:
-
-| Check                                     | Command                                                                      | Expected Result                          |
-|-------------------------------------------|------------------------------------------------------------------------------|------------------------------------------|
-| Hello-world endpoint returns correct body | `curl -i http://localhost:3000/`                                            | HTTP 200; body is exactly `Hello world`  |
-| Good-evening endpoint returns correct body| `curl -i http://localhost:3000/good-evening`                                | HTTP 200; body is exactly `Good evening` |
-| Unknown route 404s                        | `curl -i http://localhost:3000/nonexistent`                                  | HTTP 404 (Express default)               |
-| Fingerprinting header is suppressed       | `curl -sI http://localhost:3000/ \| grep -i 'x-powered-by' \|\| echo "absent"` | Output is `absent`                       |
-
-**Penetration testing scenarios**: not applicable for this scope. The application has zero user-input surface and no authentication/authorization model to exercise.
-
-### 0.8.3 Impact Assessment
-
-**Direct security improvements achieved**:
-
-- Express introduced at a current, maintained version (5.2.1) — explicitly avoids the Express maintainers' guidance that <cite index="12-12,12-13,12-14">Express 2.x and 3.x are no longer maintained. Security and performance issues in these versions won't be fixed. Do not use them!</cite>
-- Server fingerprinting via `X-Powered-By` is disabled from day one, consistent with the Express maintainers' published guidance on fingerprinting reduction.
-- Node.js engine constraint blocks installation on EOL runtimes.
-- Lockfile committed, providing supply-chain provenance.
-
-**Side effects on existing functionality**:
-
-- The repository previously had no functional surface. The change set introduces functionality rather than altering pre-existing behavior. No public API contract is broken. No data is migrated. No downstream system is affected.
-
-**Potential impacts to address**:
-
-- The application binds to port 3000 (or `process.env.PORT`). When deployed, the operator is responsible for ensuring this port is exposed only where intended. This is not a code-level concern.
-- `npm install` introduces a transitive dependency tree whose specific composition is determined by the lockfile generated at install time. Future advisories against any transitive package would surface through normal `npm audit` operation and are out of scope for this plan.
-
-## 0.9 Scope Boundaries
-
-### 0.9.1 Exhaustively In Scope
-
-The following artifacts are in scope for this Agent Action Plan. All entries are CREATE actions except for `README.md`, which is REFERENCE-only.
-
-- **Dependency manifests**
-  - `package.json` (CREATE)
-  - `package-lock.json` (CREATE — generated by `npm install`)
-- **Source files**
-  - `server.js` (CREATE — Express application entry point)
-- **Hygiene / ignore files**
-  - `.gitignore` (CREATE — excludes `node_modules/`, `npm-debug.log*`, `.env*`)
-- **Preserved artifacts**
-  - `README.md` (REFERENCE; unchanged) — preserved per constraint C-2-03
-
-### 0.9.2 Explicitly Out of Scope
-
-The following items are deliberately excluded from this plan because they were not requested by the user, are not required by any user-specified rule (the rules array is empty), and would violate the **Minimal** change-scope principle of the security-fix flavor:
-
-- **Additional security middleware**: Helmet, `express-rate-limit`, `cors`, `csurf`, `express-session`. Helmet specifically was researched and is documented in § 0.2 as a future-improvement candidate, but it provides no immediate protection for the static-string endpoints in scope (no HTML rendered, no input accepted, no cookies set) and adding it would expand scope.
-- **Transport security**: HTTPS/TLS termination, certificate management, HSTS configuration. These belong to the deployment environment, not the application code, and the user did not request them.
-- **Authentication / authorization**: no auth layer is requested, none is added.
-- **Persistence layer**: no database, no ORM, no schema, no migration scripts.
-- **External integrations**: no third-party APIs, message brokers, queues, or webhooks.
-- **Body / cookie parsing**: `express.json()`, `express.urlencoded()`, `cookie-parser` — neither endpoint reads input.
-- **Request logging / observability**: `morgan`, structured logging libraries, metrics endpoints, tracing instrumentation.
-- **Testing infrastructure**: no test framework (Jest, Mocha, Vitest, supertest) is added. The user did not request tests, no rule requires them, and the scope is too small to warrant introducing a test framework.
-- **CI/CD pipelines**: no `.github/workflows/*`, no `.gitlab-ci.yml`, no `Jenkinsfile`. No automated build/test/deploy is requested.
-- **Containerization**: no `Dockerfile`, no `docker-compose.yml`, no Kubernetes manifests.
-- **Configuration management**: no `.env` template, no config loader, no secrets schema — no configuration is needed beyond `process.env.PORT`.
-- **Documentation expansion**: `README.md` is preserved unchanged. No `SECURITY.md`, `CONTRIBUTING.md`, `docs/**` content is created.
-- **Non-vulnerable dependencies**: no dependency exists today to update; none other than `express` is added.
-- **Style/formatting tooling**: no ESLint, Prettier, EditorConfig, or pre-commit hook is added.
-- **All items explicitly excluded by user instructions**: not applicable — the user provided no explicit exclusions.
-
-### 0.9.3 Diagrammatic Summary
+The runtime integration topology after this feature is applied is illustrated below. The diagram shows the request path through the newly created Express layer.
 
 ```mermaid
-graph LR
-    A[Repository Current State<br/>README.md only] --> B{Files to CREATE}
-    B --> C[package.json<br/>express@^5.2.1<br/>engines.node >= 18]
-    B --> D[package-lock.json<br/>npm install output]
-    B --> E[server.js<br/>2 GET endpoints<br/>disable x-powered-by]
-    B --> F[.gitignore<br/>node_modules/, .env*]
-    A --> G[README.md<br/>REFERENCE only<br/>unchanged]
-%% IN-SCOPE artifacts are CREATE'd; README.md is preserved per C-2-03
+flowchart LR
+    Client["HTTP Client<br/>(browser / curl)"]
+    Listener["app.listen(3000)<br/>in server.js"]
+    Router["Express Router<br/>(internal to app)"]
+    H1["GET / handler<br/>res.send('Hello world')"]
+    H2["GET /good-evening handler<br/>res.send('Good evening')"]
+
+    Client -- "GET /" --> Listener
+    Client -- "GET /good-evening" --> Listener
+    Listener --> Router
+    Router -- "matches /" --> H1
+    Router -- "matches /good-evening" --> H2
+    H1 -- "200 text/html<br/>'Hello world'" --> Client
+    H2 -- "200 text/html<br/>'Good evening'" --> Client
+
+    classDef new fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
+    class Listener,Router,H1,H2 new;
 ```
 
-## 0.10 Execution Parameters
+All shaded nodes are introduced by this feature; the `HTTP Client` is the external actor and is not part of the codebase.
 
-### 0.10.1 Security Verification Commands
+## 0.5 Technical Implementation
 
-| Purpose                              | Exact Command                                                                |
-|--------------------------------------|------------------------------------------------------------------------------|
-| Install dependencies                 | `npm install`                                                                |
-| Reproducible install (post-lockfile) | `npm ci`                                                                     |
-| Dependency vulnerability scan        | `npm audit --omit=dev`                                                       |
-| List installed Express version       | `npm ls express`                                                             |
-| Start the server                     | `npm start`  (equivalent to `node server.js`)                                |
-| Functional smoke test — endpoint 1   | `curl -i http://localhost:3000/`                                            |
-| Functional smoke test — endpoint 2   | `curl -i http://localhost:3000/good-evening`                                |
-| Fingerprinting header check          | `curl -sI http://localhost:3000/ \| grep -i 'x-powered-by' \|\| echo "absent"` |
-| Resolved-version check               | `node -p "require('express/package.json').version"`                          |
+### 0.5.1 File-by-File Execution Plan
 
-### 0.10.2 Research Documentation
+Every file listed below MUST be created or modified to complete this feature. Each row identifies the operation mode (CREATE, UPDATE, REFERENCE) and the precise authoring intent.
 
-Security and compatibility research consulted to inform this plan (also cited inline in § 0.2):
+**Group 1 — Project Manifest and Lockfile**
 
-- **npm registry — `express` package page**: confirms <cite index="21-2">Latest version: 5.2.1, last published: 5 months ago</cite> and the Node.js floor (<cite index="21-10">Node.js 18 or higher is required</cite>).
-- **expressjs.com — Installing Express**: confirms <cite index="23-1">Express 5.x requires Node.js 18 or higher</cite>.
-- **expressjs.com — Security best practices for Express in production**: cited for the maintenance policy (<cite index="12-12,12-13,12-14,12-15">Express 2.x and 3.x are no longer maintained. Security and performance issues in these versions won't be fixed. Do not use them! If you haven't moved to version 4, follow the migration guide or consider Commercial Support Options.</cite>), for the Helmet header guidance (<cite index="12-21,12-22">Helmet can help protect your app from some well-known web vulnerabilities by setting HTTP headers appropriately. Helmet is a middleware function that sets security-related HTTP response headers.</cite>), and for the fingerprinting-reduction baseline that motivates `app.disable('x-powered-by')` (<cite index="12-27,12-28">Server software can be fingerprinted by quirks in how it responds to specific requests, for example in the HTTP response headers. By default, Express sends the X-Powered-By response header that you can disable using the app.disable() method</cite>).
-- **Industry coverage of Express 5.0 stabilization**: <cite index="5-19">Express.js 5.0, finally stable in early 2025, modernises Node.js web development while maintaining its unopinionated philosophy.</cite>
-- **MDN Web Docs — Express/Node introduction**: confirms <cite index="25-4">Express was initially released in November 2010 and is currently on major version 5 of the API.</cite>
-- **CVE applicability check**: no active CVE applicable to `express@5.2.1` for the in-scope usage profile was identified. High-profile December 2025 advisories (React/Next.js CVE-2025-55182/CVE-2025-66478, axios CVE-2025-58754) are unrelated to this plan.
+| Mode | Path | Purpose |
+|------|------|---------|
+| CREATE | `package.json` | Project manifest. Declares `name: "check11may"`, `version: "1.0.0"`, `main: "server.js"`, `scripts.start: "node server.js"`, `dependencies.express: "^5.2.1"`, `engines.node: ">=18"`, and `license: "ISC"` |
+| CREATE | `package-lock.json` | Auto-generated by `npm install express@5.2.1`; commits the resolved transitive dependency tree |
 
-### 0.10.3 Implementation Constraints
+**Group 2 — Application Source**
 
-| Constraint                          | Determination                                                              |
-|-------------------------------------|----------------------------------------------------------------------------|
-| Priority                            | Functional correctness first (the user's two endpoints must work as specified); security-conscious defaults second (no expansion of attack surface, fingerprinting disabled, lockfile committed). |
-| Backward compatibility              | N/A — nothing exists today to be backward-compatible with.                  |
-| Deployment considerations           | Immediate; no coordination required. The repository is not currently deployed anywhere. |
-| Authoring constraints from the spec | **C-2-01** No Fabrication (no invented CVE/CVSS); **C-2-02** No Extrapolation (no inferred architecture); **C-2-03** Preserve Canonical Schemas (`README.md` preserved unchanged). Assumptions A-2-01, A-2-02, A-2-03 from the existing technical specification apply. |
-| Runtime baseline (verified locally) | Node.js v22.22.2, npm 11.1.0 — fully compatible with Express 5.x.            |
+| Mode | Path | Purpose |
+|------|------|---------|
+| CREATE | `server.js` | Express application entry point. Requires `express`, instantiates `app`, registers two GET route handlers, and starts the HTTP listener |
 
-## 0.11 Special Instructions
+**Group 3 — Version Control Hygiene**
 
-### 0.11.1 User-Specified Special Instructions
+| Mode | Path | Purpose |
+|------|------|---------|
+| CREATE | `.gitignore` | Excludes `node_modules/`, npm debug logs, and environment files from git tracking |
 
-The user provided **no special instructions** for security handling beyond the literal feature description. Inputs received:
+**Group 4 — Documentation**
 
-| Input Category                                              | Value                |
-|-------------------------------------------------------------|----------------------|
-| Project-specific rules (`rules` array)                      | `[]` (empty)         |
-| Environment variables provided                              | `[]` (empty)         |
-| Secrets provided                                            | `[]` (empty)         |
-| Setup instructions                                          | None provided        |
-| Attachments                                                 | None provided        |
-| Compliance directives (SOC2 / PCI-DSS / HIPAA / etc.)       | None provided        |
-| Change-scope directive                                      | Not stated; defaulted to **Minimal** per the security-fix flavor |
-| Backward-compatibility directive                            | Not stated; not applicable (nothing exists to be compatible with) |
+| Mode | Path | Purpose |
+|------|------|---------|
+| REFERENCE (optional UPDATE) | `README.md` | Existing file containing only `# Check11May` [`README.md:L1`]. May optionally be appended with a "Getting Started" section documenting `npm install`, `npm start`, and the two endpoint URLs |
 
-### 0.11.2 Standing Principles Applied in the Absence of Explicit Directives
+### 0.5.2 Implementation Approach per File
 
-Because the user did not specify special directives, the Blitzy platform applies the standing principles that are most consistent with the security-fix flavor and with the technical specification's binding constraints:
+The intent for each created file is described below at the granularity needed for unambiguous code generation. Short illustrative snippets are included; downstream agents must apply judgment to produce well-formatted, runnable code.
 
-- **Minimal change scope** — only the files enumerated in § 0.6 are created. No unrelated refactoring, no opportunistic additions.
-- **Preserve existing functionality** — the only pre-existing artifact, `README.md`, is treated as REFERENCE and preserved verbatim per **C-2-03 (Preserve Canonical Schemas)**.
-- **No fabrication** — no CVE numbers, no CVSS scores, no vulnerable-version ranges, and no hypothetical root causes are invented to populate the security-fix template. Sections without applicable input are explicitly marked **Not Applicable** with grounded reasoning, per **C-2-01 (No Fabrication)**.
-- **No extrapolation** — no architectural style, deployment topology, or feature is inferred from the project name (`Check11May`) or from the user's casual reference to "a tutorial", per **C-2-02 (No Extrapolation)**.
-- **Audit-friendly supply chain** — `package-lock.json` is committed so that `npm ci` produces deterministic installs and `npm audit` results are reproducible.
-- **Least surface** — both endpoints return static strings and accept no input, eliminating XSS/injection/CSRF/SSRF/deserialization surfaces by construction.
-- **Secrets discipline** — no secrets are introduced. `.gitignore` is created to exclude `.env*` so that any future environment files cannot be accidentally committed.
+**`package.json` — manifest**
 
-### 0.11.3 Closing Note on Flavor Reconciliation
+Declared fields:
 
-The Agent Action Plan flavor assigned to this section is *FIX SECURITY VULNERABILITIES*, but the user's literal request is *ADD FEATURE*. The reconciliation embodied throughout this section is the following: the introduction of new HTTP framework code into a previously empty repository is treated as an opportunity to set a secure-by-default baseline (current Express version, Node engine floor, fingerprinting disabled, lockfile committed, `.gitignore` for `node_modules/` and `.env*`). Where the template demands content that has no factual basis in the user's input or in the repository state (vulnerability classification, CVE inventories, dependency-replacement analysis, root-cause traces), the section states **Not Applicable** with explicit reasoning rather than inventing data — preserving the integrity of the technical specification under its binding constraints C-2-01, C-2-02, and C-2-03.
+- `name` — `check11may` (matches the project identifier exposed by `README.md` [`README.md:L1`])
+- `version` — `1.0.0`
+- `description` — Brief tutorial description, e.g., `"Node.js Express tutorial server with Hello world and Good evening endpoints"`
+- `main` — `server.js`
+- `scripts.start` — `node server.js`
+- `dependencies` — `{ "express": "^5.2.1" }` `[npm registry — npm view express version]`
+- `engines.node` — `">=18"` `[npm registry — npm view express engines]`
+- `license` — `ISC` (npm `init -y` default; the user did not specify a license)
+
+**`server.js` — Express application**
+
+Structure (CommonJS, single file, approximately 12–15 lines):
+
+```js
+const express = require('express');
+const app = express();
+const port = process.env.PORT || 3000;
+app.get('/', (req, res) => res.send('Hello world'));
+app.get('/good-evening', (req, res) => res.send('Good evening'));
+app.listen(port, () => console.log(`Server listening on port ${port}`));
+```
+
+Implementation notes:
+
+- The two `app.get` calls register the two endpoints described in the user prompt; their response bodies are the exact strings the user specified.
+- `process.env.PORT || 3000` makes the listener port environment-overridable while defaulting to the conventional tutorial port. `[inferred — no direct source for the port]`
+- No middleware (`express.json`, `helmet`, `morgan`, etc.) is wired because none is required by the responses (plain text) and none is requested.
+- No error-handler middleware is registered because the two routes have no asynchronous or fallible operations; Express's default error responder suffices for the tutorial scope.
+
+**`.gitignore` — exclusion list**
+
+Lines to include (Node.js standard):
+
+```
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.env
+.DS_Store
+```
+
+**`package-lock.json` — generated**
+
+Not authored by hand. Produced by executing `npm install express@5.2.1` in the repository root after `package.json` is in place. Must be committed alongside `package.json` to ensure reproducible installs across environments.
+
+**`README.md` — optional non-breaking update**
+
+If updated, the existing `# Check11May` heading [`README.md:L1`] is preserved as the first line. Appended content (under a `## Getting Started` heading) should document the install command (`npm install`), the start command (`npm start`), and the two endpoint URLs (`http://localhost:3000/` and `http://localhost:3000/good-evening`).
+
+### 0.5.3 User Interface Design
+
+Not applicable. The feature is a backend-only HTTP server returning plain-text responses; there is no client-side rendering, no template engine, no static asset directory, and no design system in scope. The "interface" of the system is the two HTTP endpoints, both of which are fully specified above.
+
+### 0.5.4 Build and Run Verification
+
+After all files are in place, the feature is verified by running:
+
+```bash
+npm install
+npm start
+```
+
+and confirming the following two HTTP exchanges succeed:
+
+| Request | Expected Status | Expected Body |
+|---------|-----------------|----------------|
+| `GET http://localhost:3000/` | `200 OK` | `Hello world` |
+| `GET http://localhost:3000/good-evening` | `200 OK` | `Good evening` |
+
+## 0.6 Scope Boundaries
+
+### 0.6.1 Exhaustively In Scope
+
+All files and operations enumerated below are within the scope of this feature addition. Wildcards are used where future companion files would logically group under the same prefix; for the current scope, only the exact paths listed are required.
+
+**Repository root — created files:**
+
+- `package.json` — project manifest with `express@^5.2.1` dependency, `engines.node >= 18`, start script
+- `package-lock.json` — npm-generated lockfile (output of `npm install`)
+- `server.js` — Express application with `GET /` (`Hello world`) and `GET /good-evening` (`Good evening`) handlers and `app.listen`
+- `.gitignore` — Node.js standard exclusions including `node_modules/`
+
+**Repository root — existing files:**
+
+- `README.md` — preserved as-is; optional non-breaking append of "Getting Started" usage instructions is permitted
+
+**Filesystem side-effects (not committed to git):**
+
+- `node_modules/**` — materialized by `npm install`; excluded via `.gitignore`
+
+**Dependency manifest entries:**
+
+- `dependencies.express` — pinned at `^5.2.1`
+- `engines.node` — `">=18"`
+
+**Behavioural surface introduced:**
+
+- HTTP route `GET /` → `200` response body `Hello world`
+- HTTP route `GET /good-evening` → `200` response body `Good evening`
+- TCP listener on `process.env.PORT || 3000`
+
+### 0.6.2 Explicitly Out of Scope
+
+The following items are deliberately excluded from this feature and must not be introduced by downstream code generation. Each exclusion is grounded in the absence of a corresponding directive in the user's prompt.
+
+**Architecture and code organization:**
+
+- Conversion to ECMAScript Modules (`"type": "module"`, `import` syntax)
+- Splitting routes into separate `routes/` or `controllers/` directories — both endpoints are inlined in `server.js`
+- Conversion to TypeScript
+- Introduction of an MVC, layered, or hexagonal architecture
+- Introduction of dependency injection containers
+
+**Production hardening middleware:**
+
+- `helmet` (security headers)
+- `cors` (cross-origin resource sharing)
+- `morgan` (HTTP request logging)
+- `compression` (response compression)
+- `body-parser` / `express.json()` / `express.urlencoded()` (no request bodies are consumed)
+- Rate limiting, request validation, or authentication middleware
+
+**Persistence and integrations:**
+
+- Database connections, ORMs, or schema migrations
+- External API clients (HTTP, gRPC, message queues)
+- Session or cookie stores
+
+**Authentication, authorization, and identity:**
+
+- User accounts, login flows, JWT, OAuth, API keys
+
+**Observability:**
+
+- Structured logging, metrics, tracing, or APM integration
+- Health-check or readiness endpoints
+
+**Testing and quality tooling:**
+
+- Test frameworks (Jest, Mocha, Vitest, Supertest)
+- Linters (ESLint), formatters (Prettier), pre-commit hooks
+- Coverage tooling
+
+**Build and deployment:**
+
+- Bundlers, transpilers (Babel, esbuild, SWC)
+- Dockerfile, `docker-compose.yml`, Kubernetes manifests
+- CI/CD pipeline definitions (`.github/workflows/`, `.gitlab-ci.yml`, `Jenkinsfile`)
+- Process managers (PM2, forever, systemd units)
+- Cloud-platform IaC (Terraform, Pulumi, CloudFormation)
+
+**Documentation beyond optional README update:**
+
+- OpenAPI / Swagger specification
+- `CONTRIBUTING.md`, `LICENSE`, `CHANGELOG.md`
+- Architectural diagrams in `docs/`
+
+**Behavioural extensions:**
+
+- Additional endpoints beyond the two specified
+- Non-GET HTTP methods (POST, PUT, DELETE, PATCH)
+- Query-string handling, path parameters, request body parsing
+- HTTPS termination, custom Content-Type negotiation, or response compression
+- Internationalization of the response strings
+
+## 0.7 Rules for Feature Addition
+
+### 0.7.1 User-Specified Rules
+
+The user provided **no explicit implementation rules** for this project (the `User specified implementation rules for this project` input was an empty array). Consequently, no project-specific patterns, naming conventions, performance budgets, or security requirements are imposed by the user.
+
+### 0.7.2 Implicit Conventions Adopted
+
+In the absence of user-specified rules, the Blitzy platform adopts the following implicit conventions consistent with the "tutorial" framing of the user's prompt. Downstream agents must follow these conventions unless a future revision of this AAP overrides them.
+
+| Convention | Adopted Value | Rationale |
+|------------|---------------|-----------|
+| Module system | CommonJS (`require`) | Default produced by `npm init`; the simplest tutorial form |
+| Language | JavaScript (not TypeScript) | User describes a "tutorial of node js server"; TypeScript not requested |
+| Style | Single-file application | Two endpoints do not justify a multi-file structure |
+| Response transport | Plain text via `res.send('...')` | Matches the simple-string responses the user named |
+| Port binding | `process.env.PORT || 3000` | 3000 is the conventional Express tutorial port; environment override preserves portability |
+| Route paths | `/` and `/good-evening` (kebab-case) | `/` is the existing tutorial path; kebab-case is the conventional Express path style |
+| Dependency version-range operator | `^` (caret) | npm's default; permits non-breaking patch/minor upgrades |
+| License field | `ISC` | npm `init -y` default; the user did not specify a license |
+
+### 0.7.3 Constraints That Apply Regardless
+
+The following constraints are not user-specified rules but are nevertheless binding because they arise from the technology choices made above:
+
+- **Node.js runtime ≥ 18**: Mandated by `express@5.2.1` itself `[npm registry — npm view express engines]`. The `package.json` must declare `engines.node: ">=18"`.
+- **`node_modules/` must be gitignored**: A `node_modules` directory committed to git would inflate the repository and is universally considered a Node.js anti-pattern. The `.gitignore` file enumerated in §0.6.1 enforces this.
+- **`package-lock.json` must be committed**: To ensure that downstream installs resolve the same transitive dependency tree, the lockfile produced by `npm install` is committed alongside `package.json`.
+- **Preserve original endpoint behaviour**: The `GET /` response body must remain `Hello world` after migration to Express. This is implicit in the user's instruction to "add expressjs" (additive, not destructive) and to "add another endpoint" (additive). The original endpoint is not to be removed or renamed.
+
+## 0.8 References
+
+### 0.8.1 Inline Citation Index
+
+This appendix consolidates every citation used in §0.1 through §0.7 for traceability. Each claim that depended on an external or repository-evidence source is cited with the source listed below.
+
+| Citation Tag | Source | Use |
+|--------------|--------|-----|
+| `[README.md:L1]` | The repository's `README.md`, line 1 (`# Check11May`) | Project identifier; sole pre-existing content |
+| `[§1.2.2 of this specification]` | Section 1.2.2 of this Technical Specification | Verified absence of executable code |
+| `[§2.8.3 verified-absence enumeration]` | Section 2.8.3 of this Technical Specification | Verified absence of package manifests |
+| `[§3.4.1 of this specification]` | Section 3.4.1 of this Technical Specification | Verified absence of dependencies |
+| `[npm registry — npm view express version]` | `npm view express version` returning `5.2.1` | Express latest stable version |
+| `[npm registry — npm view express engines]` | `npm view express engines` returning `{ "node": ">= 18" }` | Express runtime engine constraint |
+| `[npm registry — npm view express license]` | `npm view express license` returning `MIT` | Express license |
+| `[bash: node -v]` | `node -v` returning `v22.22.2` | Installed Node.js version in execution environment |
+| `[bash: ls -la repository root]` | Listing of repository root | Confirmation that only `README.md` exists |
+| `[inferred — no direct source]` | Tags used where a default choice (e.g., port 3000, route path `/good-evening`) is adopted in the absence of an explicit user directive | — |
+
+### 0.8.2 Attachments Provided by the User
+
+**None.** The user attached zero files, zero environments, and zero secrets to this project. The input declared:
+
+- `User attached 0 environments to this project.`
+- `No attachments found for this project.`
+- `Setup Instructions provided by the user: None provided`
+- Environment variables list: `[]`
+- Secrets list: `[]`
+- User-specified implementation rules: `[]`
+
+### 0.8.3 Figma Screens Provided by the User
+
+**None.** No Figma URLs were referenced in the user's prompt. The Design System Compliance protocol is therefore not invoked (no design system is named) and no Figma-to-system token mapping is required.
+
+### 0.8.4 Search Log — Repository Inspection
+
+The following inspection actions were performed during the derivation of this Agent Action Plan:
+
+| # | Action | Tool | Target | Outcome |
+|---|--------|------|--------|---------|
+| 1 | Bash | `ls -la /tmp/environments_files/` | Environments folder | Empty — no user-supplied files |
+| 2 | Bash | `node --version`, `npm --version` | Local runtime | Node `v22.22.2`, npm `11.1.0` |
+| 3 | `get_source_folder_contents` | Tool | Repository root (`""`) | One child: `README.md`; no subfolders |
+| 4 | Bash | `find . -name ".blitzyignore"` | Repository tree | No `.blitzyignore` files exist |
+| 5 | `read_file` | Tool | `README.md` lines 1–-1 | Content is the single line `# Check11May` |
+| 6 | `get_tech_spec_section` | Tool | `1.1 EXECUTIVE SUMMARY` | Confirms the repository's "Check11May" identifier and pre-implementation state |
+| 7 | `get_tech_spec_section` | Tool | `1.2 SYSTEM OVERVIEW` | Confirms no source code, no service definitions, no endpoints exist |
+| 8 | `get_tech_spec_section` | Tool | `1.3 SCOPE` | Confirms in-scope set is `README.md` only; verified absence of `package.json` and source files |
+| 9 | `get_tech_spec_section` | Tool | `2.1 PREAMBLE` | Confirms requirement-derivability halts due to absence of artifacts |
+| 10 | `get_tech_spec_section` | Tool | `2.2 FEATURE CATALOG` | Confirms feature catalog is empty |
+| 11 | `get_tech_spec_section` | Tool | `3.2 PROGRAMMING LANGUAGES` | Confirms no language declaration exists |
+| 12 | `get_tech_spec_section` | Tool | `3.3 FRAMEWORKS & LIBRARIES` | Confirms no framework declaration exists |
+| 13 | `get_tech_spec_section` | Tool | `3.4 OPEN SOURCE DEPENDENCIES` | Confirms no package manifests / lockfiles exist |
+| 14 | `get_tech_spec_section` | Tool | `3.7 DEVELOPMENT & DEPLOYMENT` | Confirms no build, CI/CD, or container artifacts exist |
+| 15 | `get_tech_spec_section` | Tool | `3.11 INTEGRATION REQUIREMENTS` | Confirms no integration touchpoints exist between components |
+| 16 | Bash | `npm view express version`, `npm view express engines`, `npm view express license` | npm registry | Express `5.2.1`, engines `node >= 18`, MIT license |
+| 17 | Web search | `web_search` | "express.js latest stable version 5 npm" | Used to corroborate registry findings; npm registry is treated as the authoritative source for the version pin |
+
+### 0.8.5 Folders Examined
+
+- `/` (repository root, depth 0) — Confirmed via `get_source_folder_contents` to contain exactly one direct child (`README.md`) and zero subfolders. No deeper traversal was possible because no subfolders exist.
+
+### 0.8.6 Files Examined
+
+- `README.md` (root, 1 line) — Contains the single heading `# Check11May`. Provides the project identifier but no functional content.
 
