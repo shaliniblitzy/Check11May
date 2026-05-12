@@ -1,0 +1,23 @@
+{
+  "name": "check11may",
+  "version": "1.0.0",
+  "description": "Tutorial Node.js server hosting two GET endpoints powered by Express.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "jest",
+    "test:coverage": "jest --coverage",
+    "test:ci": "jest --ci --watchAll=false --runInBand"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "jest": "^30.4.2",
+    "supertest": "^7.2.2"
+  }
+}
