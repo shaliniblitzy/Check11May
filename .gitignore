@@ -1,0 +1,22 @@
+# Dependency directories
+node_modules/
+
+# npm logs and crash dumps
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variable files (prevent accidental secret leakage)
+.env
+.env.*
+!.env.example
+
+# Editor / IDE local files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS-specific files
+.DS_Store
+Thumbs.db
