@@ -1,0 +1,14 @@
+# Ignore installed dependencies so that node_modules is not committed.
+
+node_modules/
+
+#### Ignore npm and yarn debug logs.
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+#### Ignore optional dotenv files if learners add one later.
+
+.env
+.env.local
